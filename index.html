@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Adu Data: Menjadi Moderator & Negosiator Ulung</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin: 0; padding: 0; background: #1b1f2a; overflow: hidden; }
+  #game-container { display: flex; justify-content: center; align-items: center; width: 100vw; height: 100vh; }
+  canvas { image-rendering: -webkit-optimize-contrast; }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+<script>
+
+/* =========================================================
+   ADU DATA — DATA KONTEN (topik: Gadget di Sekolah)
+   ========================================================= */
+
+const CONTENT = {
+  topicName: "Gadget di Sekolah",
+  level1: {
+    title: "Redaksi Digital: Investigasi Isu",
+    articleTitle: "Gadget di Kelas: Solusi Belajar atau Sumber Masalah Baru?",
+    sentences: [
+      { text: "Penelitian WHO tahun 2025 menunjukkan 60% remaja usia 13-17 tahun menggunakan gadget lebih dari 5 jam sehari.", type: "fakta", reason: "Ada sumber dan data angka yang bisa diverifikasi." },
+      { text: "Menurut saya, gadget benar-benar merusak otak anak-anak zaman sekarang.", type: "opini", reason: '"Menurut saya" menandakan pendapat pribadi tanpa data.' },
+      { text: "Survei Kemendikbudristek mencatat 40 sekolah di Jakarta menerapkan larangan HP saat jam pelajaran sejak 2024.", type: "fakta", reason: "Angka dan lembaga sumber jelas dan bisa dicek." },
+      { text: "Semua anak yang pegang HP pasti nilainya jelek, itu sudah pasti.", type: "opini", reason: 'Generalisasi berlebihan ("semua", "pasti") tanpa bukti.' },
+      { text: "Data Kominfo mencatat 78% orang tua di kota besar mendukung penggunaan gadget untuk tugas sekolah.", type: "fakta", reason: "Sumber lembaga resmi dan persentase spesifik." },
+      { text: "Katanya sih, ada penelitian rahasia yang membuktikan gadget bikin anak jadi malas belajar selamanya.", type: "opini", reason: 'Sumber tidak jelas ("katanya sih", "penelitian rahasia").' },
+      { text: "Studi Universitas Indonesia tahun 2025 menemukan gadget edukatif terbimbing meningkatkan nilai matematika 12%.", type: "fakta", reason: "Sumber institusi, tahun, dan angka spesifik." },
+      { text: "Saya yakin dalam 10 tahun ke depan sekolah tanpa gadget akan punah total.", type: "opini", reason: "Prediksi pribadi tanpa data pendukung." }
+    ]
+  },
+  level2: {
+    npcPro: { name: "Budi \"Si Data\"", color: 0x378ADD },
+    npcKontra: { name: "Sinta \"Si Emosi\"", color: 0xD4537E },
+    openingPro: "Gadget itu alat belajar masa depan. Kita nggak bisa terus pakai cara lama!",
+    openingKontra: "Justru karena masa depan itu kita harus hati-hati! Anak-anak jadi kecanduan layar!",
+    cards: [
+      { text: "Gadget memudahkan murid mengakses jurnal ilmiah dan video pembelajaran interaktif.", type: "pro" },
+      { text: "Gangguan konsentrasi meningkat pada murid yang sering cek notifikasi saat belajar.", type: "kontra" },
+      { text: "Aplikasi kuis digital membuat evaluasi belajar lebih cepat dan variatif bagi guru.", type: "pro" },
+      { text: "Beberapa sekolah melaporkan kasus perundungan online meningkat sejak gadget bebas dipakai.", type: "kontra" },
+      { text: "Gadget memungkinkan murid di daerah terpencil ikut kelas daring dari guru terbaik.", type: "pro" },
+      { text: "Biaya perbaikan gadget yang rusak membebani orang tua dengan ekonomi terbatas.", type: "kontra" },
+      { text: "Fitur teks-ke-suara pada gadget sangat membantu murid dengan kesulitan membaca.", type: "pro" },
+      { text: "Guru kewalahan mengawasi banyak layar, potensi murid main gim saat KBM meningkat.", type: "kontra" },
+      { text: "Warna casing HP yang bagus bikin murid lebih percaya diri di kelas.", type: "netral" },
+      { text: "Cuaca hari ini cerah sehingga cocok untuk belajar di luar kelas.", type: "netral" }
+    ]
+  },
+  level3: {
+    items: [
+      { text: "Pendapatmu soal larangan gadget itu ngawur, wajar sih, kamu kan memang nggak pernah belajar serius.", target: "kamu kan memang nggak pernah belajar serius", explain: "Ad hominem: menyerang pribadi, bukan isi argumen." },
+      { text: "Kemarin saya lihat satu anak main gim saat pelajaran, jadi jelas semua anak yang bawa HP pasti begitu.", target: "jelas semua anak yang bawa HP pasti begitu", explain: "Generalisasi tergesa dari satu contoh saja." },
+      { text: "Jadi maksudmu kita harus biarkan anak-anak main HP seharian tanpa belajar sama sekali kan?", target: "main HP seharian tanpa belajar sama sekali", explain: "Argumen jerami: memutarbalikkan posisi lawan." },
+      { text: "Tetangga saya yang kerja di bengkel bilang gadget itu berbahaya buat otak, jadi pasti benar.", target: "tetangga saya yang kerja di bengkel", explain: "Otoritas palsu: sumber tidak relevan dengan topik." },
+      { text: "Kalau HP diperbolehkan di kelas, lama-lama sekolah akan bubar dan semua murid jadi bodoh total.", target: "lama-lama sekolah akan bubar dan semua murid jadi bodoh total", explain: "Slippery slope: lompatan kesimpulan ekstrem tanpa dasar." },
+      { text: "Ada penelitian luar negeri katanya 99% anak pegang HP nilainya turun drastis, saya lupa sumbernya.", target: "katanya", explain: "Data tak terverifikasi, sumber tidak jelas." }
+    ]
+  },
+  level4: {
+    template: "Berdasarkan diskusi, dapat disimpulkan bahwa {A}, namun {B}. Oleh karena itu, disarankan {C}.",
+    slotA: [
+      { text: "gadget memiliki manfaat nyata dalam mendukung akses belajar dan kreativitas murid", score: 2 },
+      { text: "gadget adalah satu-satunya cara efektif murid bisa belajar di era ini", score: 0 },
+      { text: "gadget mungkin ada sedikit gunanya untuk sebagian murid", score: 1 }
+    ],
+    slotB: [
+      { text: "penggunaan yang tidak diatur dapat mengganggu konsentrasi dan menimbulkan risiko sosial", score: 2 },
+      { text: "gadget pada dasarnya selalu merusak proses belajar murid", score: 0 },
+      { text: "ada sedikit orang yang mungkin terganggu, tapi itu jarang terjadi", score: 1 }
+    ],
+    slotC: [
+      { text: "sekolah menerapkan aturan penggunaan gadget yang jelas dengan pengawasan guru", score: 2 },
+      { text: "gadget dilarang total dari lingkungan sekolah tanpa pengecualian", score: 0 },
+      { text: "murid dibiarkan bebas memakai gadget kapan pun tanpa aturan tambahan", score: 0 }
+    ]
+  },
+  level5: {
+    questions: [
+      {
+        q: "Jadi menurut Anda pribadi, siapa yang paling benar, tim Pro atau tim Kontra?",
+        options: [
+          { text: "Saya rasa tim Pro lebih masuk akal dan lebih pintar.", trust: -15 },
+          { text: "Kedua pihak punya data valid; simpulan kami merangkum keduanya secara seimbang.", trust: +15 },
+          { text: "Itu bukan urusan saya, terserah warga saja.", trust: -5 }
+        ]
+      },
+      {
+        q: "Saya dengar dari grup WhatsApp katanya gadget bikin 90% anak jadi malas. Apa itu benar?",
+        options: [
+          { text: "Kalau begitu berarti memang benar, banyak juga yang bilang begitu.", trust: -15 },
+          { text: "Kami belum menemukan sumber tepercaya untuk angka itu, jadi belum bisa dipastikan.", trust: +15 },
+          { text: "Mungkin saja benar, mungkin juga tidak, saya tidak tahu.", trust: +5 }
+        ]
+      },
+      {
+        q: "Bukannya tim Kontra itu isinya orang-orang gaptek yang takut kemajuan ya?",
+        options: [
+          { text: "Betul, mereka memang kurang paham teknologi.", trust: -20 },
+          { text: "Argumen tim Kontra soal risiko sosial itu berbasis data, bukan soal gaptek.", trust: +15 },
+          { text: "Saya tidak mau berkomentar soal itu.", trust: -5 }
+        ]
+      },
+      {
+        q: "Kalau memang solusinya jalan tengah, kenapa nggak sekalian dilarang total saja biar aman?",
+        options: [
+          { text: "Betul juga, mungkin lebih baik dilarang total.", trust: -15 },
+          { text: "Larangan total mengabaikan manfaat gadget untuk belajar, makanya kami pilih aturan yang jelas.", trust: +15 },
+          { text: "Terserah sekolah masing-masing saja.", trust: -5 }
+        ]
+      }
+    ]
+  }
+};
+
+/* =========================================================
+   STATE GLOBAL SKOR (Indeks Kredibilitas)
+   ========================================================= */
+const GameState = {
+  reset() {
+    this.level1 = { correct: 0, total: 0 };
+    this.level2 = { correct: 0, total: 0, rageMax: 0 };
+    this.level3 = { correct: 0, total: 0, misses: 0 };
+    this.level4 = { neutralityScore: 0, neutralityMax: 6 };
+    this.level5 = { trust: 50 };
+    this.badges = [];
+  }
+};
+GameState.reset();
+
+const COLORS = {
+  bg: 0x1b1f2a, card: 0x2a2f3f, cardBorder: 0x4a5068,
+  fakta: 0x1D9E75, opini: 0x888780, pro: 0x378ADD, kontra: 0xD4537E, netral: 0x5F5E5A,
+  gold: 0xF2A623, white: 0xffffff, danger: 0xE24B4A
+};
+
+function makeButton(scene, x, y, w, h, label, onClick, fillColor) {
+  const g = scene.add.graphics();
+  g.fillStyle(fillColor !== undefined ? fillColor : COLORS.card, 1);
+  g.fillRoundedRect(x - w/2, y - h/2, w, h, 10);
+  g.lineStyle(1, COLORS.cardBorder, 1);
+  g.strokeRoundedRect(x - w/2, y - h/2, w, h, 10);
+  const t = scene.add.text(x, y, label, {
+    fontFamily: "sans-serif", fontSize: "16px", color: "#ffffff", align: "center", wordWrap: { width: w - 24 }
+  }).setOrigin(0.5);
+  const zone = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+  zone.on("pointerover", () => g.setAlpha(0.85));
+  zone.on("pointerout", () => g.setAlpha(1));
+  zone.on("pointerdown", () => { g.setAlpha(0.6); onClick(); });
+  return { g, t, zone };
+}
+
+function progressBar(scene, x, y, w, h, ratio, color) {
+  const bg = scene.add.graphics();
+  bg.fillStyle(0x11141c, 1);
+  bg.fillRoundedRect(x, y, w, h, h/2);
+  const fg = scene.add.graphics();
+  fg.fillStyle(color, 1);
+  fg.fillRoundedRect(x, y, Math.max(4, w * ratio), h, h/2);
+  return fg;
+}
+
+/* =========================================================
+   SCENE: MENU
+   ========================================================= */
+class MenuScene extends Phaser.Scene {
+  constructor() { super("Menu"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.add.text(400, 90, "ADU DATA", { fontFamily: "sans-serif", fontSize: "42px", color: "#F2A623" }).setOrigin(0.5);
+    this.add.text(400, 130, "Menjadi Moderator & Negosiator Ulung", { fontFamily: "sans-serif", fontSize: "16px", color: "#cccccc" }).setOrigin(0.5);
+    this.add.text(400, 160, "Topik: " + CONTENT.topicName, { fontFamily: "sans-serif", fontSize: "14px", color: "#888780" }).setOrigin(0.5);
+
+    const levels = [
+      ["Level 1: Investigasi Isu", "Level1"],
+      ["Level 2: Arena Debat", "Level2"],
+      ["Level 3: Palu Logika", "Level3"],
+      ["Level 4: Konklusi Agung", "Level4"],
+      ["Level 5: Konferensi Pers", "Level5"]
+    ];
+    levels.forEach((lv, i) => {
+      makeButton(this, 400, 220 + i * 60, 360, 46, lv[0], () => {
+        GameState.reset();
+        this.scene.start(lv[1]);
+      });
+    });
+  }
+}
+
+/* =========================================================
+   SCENE: LEVEL 1 — Fakta vs Opini
+   ========================================================= */
+class Level1Scene extends Phaser.Scene {
+  constructor() { super("Level1"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.idx = 0;
+    this.add.text(400, 30, CONTENT.level1.title, { fontFamily: "sans-serif", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+    this.add.text(400, 58, CONTENT.level1.articleTitle, { fontFamily: "sans-serif", fontSize: "13px", color: "#F2A623", wordWrap: { width: 600 }, align: "center" }).setOrigin(0.5);
+
+    this.progressText = this.add.text(400, 90, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#888780" }).setOrigin(0.5);
+
+    this.cardBg = this.add.graphics();
+    this.cardText = this.add.text(400, 220, "", {
+      fontFamily: "sans-serif", fontSize: "17px", color: "#ffffff", align: "center", wordWrap: { width: 520 }
+    }).setOrigin(0.5);
+
+    this.feedbackText = this.add.text(400, 320, "", {
+      fontFamily: "sans-serif", fontSize: "13px", color: "#F2A623", align: "center", wordWrap: { width: 560 }
+    }).setOrigin(0.5);
+
+    this.btnFakta = makeButton(this, 260, 400, 200, 54, "FAKTA", () => this.answer("fakta"), COLORS.fakta);
+    this.btnOpini = makeButton(this, 540, 400, 200, 54, "OPINI", () => this.answer("opini"), COLORS.opini);
+
+    this.showSentence();
+  }
+  showSentence() {
+    this.feedbackText.setText("");
+    const data = CONTENT.level1.sentences;
+    this.progressText.setText(`Kalimat ${this.idx + 1} / ${data.length}`);
+    this.cardBg.clear();
+    this.cardBg.fillStyle(COLORS.card, 1);
+    this.cardBg.fillRoundedRect(140, 150, 520, 140, 14);
+    this.cardBg.lineStyle(1, COLORS.cardBorder, 1);
+    this.cardBg.strokeRoundedRect(140, 150, 520, 140, 14);
+    this.cardText.setPosition(400, 220).setText(`"${data[this.idx].text}"`);
+  }
+  answer(choice) {
+    const item = CONTENT.level1.sentences[this.idx];
+    const correct = choice === item.type;
+    GameState.level1.total++;
+    if (correct) GameState.level1.correct++;
+    this.feedbackText.setColor(correct ? "#1D9E75" : "#E24B4A");
+    this.feedbackText.setText((correct ? "Benar! " : "Kurang tepat. ") + item.reason);
+    this.time.delayedCall(1400, () => {
+      this.idx++;
+      if (this.idx >= CONTENT.level1.sentences.length) {
+        this.scene.start("Level2");
+      } else {
+        this.showSentence();
+      }
+    });
+  }
+}
+
+/* =========================================================
+   SCENE: LEVEL 2 — Arena Debat (Filter Argumen)
+   ========================================================= */
+class Level2Scene extends Phaser.Scene {
+  constructor() { super("Level2"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.idx = 0;
+    this.rage = 0;
+    this.cards = Phaser.Utils.Array.Shuffle(CONTENT.level2.cards.slice());
+
+    this.add.text(400, 26, "Level 2: Arena Debat — Filter Argumen", { fontFamily: "sans-serif", fontSize: "18px", color: "#ffffff" }).setOrigin(0.5);
+
+    // NPC panels
+    this.add.circle(160, 90, 26, CONTENT.level2.npcPro.color);
+    this.add.text(160, 122, CONTENT.level2.npcPro.name, { fontFamily: "sans-serif", fontSize: "12px", color: "#ffffff", align: "center", wordWrap: { width: 140 } }).setOrigin(0.5);
+    this.add.circle(640, 90, 26, CONTENT.level2.npcKontra.color);
+    this.add.text(640, 122, CONTENT.level2.npcKontra.name, { fontFamily: "sans-serif", fontSize: "12px", color: "#ffffff", align: "center", wordWrap: { width: 140 } }).setOrigin(0.5);
+
+    this.rageBarFg = progressBar(this, 320, 55, 160, 10, 0, COLORS.gold);
+    this.add.text(400, 42, "Rage bar", { fontFamily: "sans-serif", fontSize: "10px", color: "#888780" }).setOrigin(0.5);
+
+    this.openingText = this.add.text(400, 155, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#F2A623", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+    this.openingText.setText(`"${CONTENT.level2.openingPro}"  /  "${CONTENT.level2.openingKontra}"`);
+
+    this.progressText = this.add.text(400, 190, "", { fontFamily: "sans-serif", fontSize: "12px", color: "#888780" }).setOrigin(0.5);
+
+    this.cardBg = this.add.graphics();
+    this.cardText = this.add.text(400, 260, "", {
+      fontFamily: "sans-serif", fontSize: "15px", color: "#ffffff", align: "center", wordWrap: { width: 520 }
+    }).setOrigin(0.5);
+
+    this.feedbackText = this.add.text(400, 320, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#F2A623", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+
+    this.btnPro = makeButton(this, 190, 420, 260, 54, "Argumen Mendukung (Pro)", () => this.answer("pro"), COLORS.pro);
+    this.btnKontra = makeButton(this, 610, 420, 260, 54, "Argumen Menolak (Kontra)", () => this.answer("kontra"), COLORS.kontra);
+    this.btnSkip = makeButton(this, 400, 470, 260, 40, "Tidak Relevan", () => this.answer("netral"), COLORS.netral);
+
+    this.showCard();
+  }
+  showCard() {
+    this.feedbackText.setText("");
+    this.progressText.setText(`Kartu ${this.idx + 1} / ${this.cards.length}`);
+    this.cardBg.clear();
+    this.cardBg.fillStyle(COLORS.card, 1);
+    this.cardBg.fillRoundedRect(140, 220, 520, 90, 14);
+    this.cardBg.lineStyle(1, COLORS.cardBorder, 1);
+    this.cardBg.strokeRoundedRect(140, 220, 520, 90, 14);
+    this.cardText.setPosition(400, 260).setText(`"${this.cards[this.idx].text}"`);
+  }
+  answer(choice) {
+    const item = this.cards[this.idx];
+    const correct = choice === item.type;
+    GameState.level2.total++;
+    if (correct) {
+      GameState.level2.correct++;
+      this.feedbackText.setColor("#1D9E75").setText("Tepat! Argumen ditempatkan dengan benar.");
+    } else {
+      this.rage = Math.min(100, this.rage + 20);
+      GameState.level2.rageMax = Math.max(GameState.level2.rageMax, this.rage);
+      this.rageBarFg.clear();
+      this.rageBarFg.fillStyle(COLORS.gold, 1);
+      this.rageBarFg.fillRoundedRect(320, 55, Math.max(4, 160 * this.rage / 100), 10, 5);
+      const npcLine = item.type === "pro"
+        ? "Lho, itu kan bukan poin yang mendukung saya!"
+        : item.type === "kontra"
+        ? "Kok argumen itu malah dipakai buat nolak saya? Nggak nyambung!"
+        : "Itu argumen nggak relevan sama topik kita.";
+      this.feedbackText.setColor("#E24B4A").setText("Kurang tepat. " + npcLine);
+    }
+    this.time.delayedCall(1300, () => {
+      this.idx++;
+      if (this.idx >= this.cards.length) {
+        this.scene.start("Level3");
+      } else {
+        this.showCard();
+      }
+    });
+  }
+}
+
+/* =========================================================
+   SCENE: LEVEL 3 — Palu Logika (klik frasa cacat logika)
+   ========================================================= */
+class Level3Scene extends Phaser.Scene {
+  constructor() { super("Level3"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.idx = 0;
+    this.lives = 3;
+    this.add.text(400, 26, "Level 3: Palu Logika", { fontFamily: "sans-serif", fontSize: "18px", color: "#ffffff" }).setOrigin(0.5);
+    this.livesText = this.add.text(400, 54, "", { fontFamily: "sans-serif", fontSize: "14px", color: "#F2A623" }).setOrigin(0.5);
+    this.instrText = this.add.text(400, 80, "Klik frasa yang menunjukkan cacat logika pada kalimat berikut:", { fontFamily: "sans-serif", fontSize: "12px", color: "#888780", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+
+    this.cardBg = this.add.graphics();
+    this.wordContainer = this.add.container(0, 0);
+
+    this.explainText = this.add.text(400, 340, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#1D9E75", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+
+    this.updateLives();
+    this.showItem();
+  }
+  updateLives() {
+    this.livesText.setText("Nyawa palu: " + "🔨".repeat(this.lives) + "▫️".repeat(Math.max(0, 3 - this.lives)));
+  }
+  showItem() {
+    this.explainText.setText("");
+    this.wordContainer.removeAll(true);
+    const item = CONTENT.level3.items[this.idx];
+    this.cardBg.clear();
+    this.cardBg.fillStyle(COLORS.card, 1);
+    this.cardBg.fillRoundedRect(100, 130, 600, 150, 14);
+    this.cardBg.lineStyle(1, COLORS.cardBorder, 1);
+    this.cardBg.strokeRoundedRect(100, 130, 600, 150, 14);
+
+    // Tentukan rentang karakter target di dalam kalimat, lalu petakan ke kata per kata
+    // agar highlight tepat pada kemunculan frasa yang benar (bukan kata serupa di tempat lain).
+    const targetStart = item.text.indexOf(item.target);
+    const targetEnd = targetStart + item.target.length;
+
+    let x = 130, y = 160, lineHeight = 26, maxWidth = 540;
+    const startX = x;
+    let charPointer = 0;
+    item.text.split(" ").forEach((word) => {
+      const wordStart = charPointer;
+      const wordEnd = wordStart + word.length;
+      charPointer = wordEnd + 1; // +1 untuk spasi
+
+      const belongsToTarget = targetStart !== -1 && wordStart < targetEnd && wordEnd > targetStart;
+
+      const wordObj = this.add.text(x, y, word + " ", {
+        fontFamily: "sans-serif", fontSize: "14px", color: "#ffffff"
+      });
+      if (belongsToTarget) {
+        wordObj.setColor("#FAC775");
+        wordObj.setInteractive({ useHandCursor: true });
+        wordObj.on("pointerdown", () => this.correctClick(item));
+      } else {
+        wordObj.setInteractive();
+        wordObj.on("pointerdown", () => this.wrongClick());
+      }
+      this.wordContainer.add(wordObj);
+      x += wordObj.width;
+      if (x > startX + maxWidth) { x = startX; y += lineHeight; }
+    });
+  }
+  correctClick(item) {
+    this.explainText.setColor("#1D9E75").setText("Tepat! " + item.explain);
+    GameState.level3.correct++;
+    GameState.level3.total++;
+    this.advance();
+  }
+  wrongClick() {
+    this.lives--;
+    GameState.level3.misses++;
+    GameState.level3.total++;
+    this.updateLives();
+    this.explainText.setColor("#E24B4A").setText("Belum tepat, coba cari frasa yang menyerang pribadi atau melompat kesimpulan.");
+    if (this.lives <= 0) {
+      this.time.delayedCall(1200, () => this.scene.start("Level4"));
+    }
+  }
+  advance() {
+    this.time.delayedCall(1400, () => {
+      this.idx++;
+      if (this.idx >= CONTENT.level3.items.length || this.lives <= 0) {
+        this.scene.start("Level4");
+      } else {
+        this.showItem();
+      }
+    });
+  }
+}
+
+/* =========================================================
+   SCENE: LEVEL 4 — Konklusi Agung
+   ========================================================= */
+class Level4Scene extends Phaser.Scene {
+  constructor() { super("Level4"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.step = 0; // 0=A, 1=B, 2=C
+    this.choice = { A: null, B: null, C: null };
+    this.add.text(400, 30, "Level 4: Konklusi Agung", { fontFamily: "sans-serif", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+    this.instrText = this.add.text(400, 62, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#888780" }).setOrigin(0.5);
+
+    this.previewBg = this.add.graphics();
+    this.previewText = this.add.text(400, 130, "", {
+      fontFamily: "sans-serif", fontSize: "14px", color: "#ffffff", align: "center", wordWrap: { width: 560 }
+    }).setOrigin(0.5);
+
+    this.optionButtons = [];
+    this.showStep();
+  }
+  slotLabel() { return ["A", "B", "C"][this.step]; }
+  slotData() {
+    return [CONTENT.level4.slotA, CONTENT.level4.slotB, CONTENT.level4.slotC][this.step];
+  }
+  showStep() {
+    this.optionButtons.forEach(b => { b.g.destroy(); b.t.destroy(); b.zone.destroy(); });
+    this.optionButtons = [];
+    this.instrText.setText(`Pilih kalimat untuk slot ${this.slotLabel()} (${this.step + 1}/3)`);
+    this.renderPreview();
+    const opts = this.slotData();
+    opts.forEach((opt, i) => {
+      const btn = makeButton(this, 400, 260 + i * 80, 600, 64, opt.text, () => this.select(opt));
+      this.optionButtons.push(btn);
+    });
+  }
+  renderPreview() {
+    const A = this.choice.A ? this.choice.A.text : "___(A)___";
+    const B = this.choice.B ? this.choice.B.text : "___(B)___";
+    const C = this.choice.C ? this.choice.C.text : "___(C)___";
+    const text = CONTENT.level4.template.replace("{A}", A).replace("{B}", B).replace("{C}", C);
+    this.previewBg.clear();
+    this.previewBg.fillStyle(COLORS.card, 1);
+    this.previewBg.fillRoundedRect(100, 95, 600, 70, 14);
+    this.previewText.setPosition(400, 130).setText(text);
+  }
+  select(opt) {
+    this.choice[this.slotLabel()] = opt;
+    GameState.level4.neutralityScore += opt.score;
+    this.step++;
+    if (this.step >= 3) {
+      this.renderPreview();
+      this.time.delayedCall(1500, () => this.scene.start("Level5"));
+    } else {
+      this.showStep();
+    }
+  }
+}
+
+/* =========================================================
+   SCENE: LEVEL 5 — Konferensi Pers Darurat
+   ========================================================= */
+class Level5Scene extends Phaser.Scene {
+  constructor() { super("Level5"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.idx = 0;
+    this.add.text(400, 26, "Level 5: Konferensi Pers Darurat", { fontFamily: "sans-serif", fontSize: "18px", color: "#ffffff" }).setOrigin(0.5);
+
+    this.add.text(220, 58, "Kepercayaan publik", { fontFamily: "sans-serif", fontSize: "12px", color: "#888780" });
+    this.trustBarFg = progressBar(this, 350, 52, 260, 12, GameState.level5.trust / 100, 0x378ADD);
+    this.trustLabel = this.add.text(620, 52, GameState.level5.trust + "%", { fontFamily: "sans-serif", fontSize: "12px", color: "#ffffff" });
+
+    this.qBg = this.add.graphics();
+    this.qText = this.add.text(400, 140, "", { fontFamily: "sans-serif", fontSize: "15px", color: "#ffffff", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+
+    this.optionButtons = [];
+    this.feedbackText = this.add.text(400, 440, "", { fontFamily: "sans-serif", fontSize: "13px", color: "#F2A623", align: "center", wordWrap: { width: 560 } }).setOrigin(0.5);
+
+    this.showQuestion();
+  }
+  updateTrustBar() {
+    const ratio = Math.max(0, Math.min(100, GameState.level5.trust)) / 100;
+    this.trustBarFg.clear();
+    this.trustBarFg.fillStyle(0x378ADD, 1);
+    this.trustBarFg.fillRoundedRect(350, 52, Math.max(4, 260 * ratio), 12, 6);
+    this.trustLabel.setText(Math.round(GameState.level5.trust) + "%");
+  }
+  showQuestion() {
+    this.feedbackText.setText("");
+    this.optionButtons.forEach(b => { b.g.destroy(); b.t.destroy(); b.zone.destroy(); });
+    this.optionButtons = [];
+    const item = CONTENT.level5.questions[this.idx];
+    this.qBg.clear();
+    this.qBg.fillStyle(COLORS.card, 1);
+    this.qBg.fillRoundedRect(100, 95, 600, 90, 14);
+    this.qText.setPosition(400, 140).setText('Wartawan: "' + item.q + '"');
+
+    item.options.forEach((opt, i) => {
+      const btn = makeButton(this, 400, 230 + i * 65, 600, 54, opt.text, () => this.answer(opt));
+      this.optionButtons.push(btn);
+    });
+  }
+  answer(opt) {
+    GameState.level5.trust = Math.max(0, Math.min(100, GameState.level5.trust + opt.trust));
+    this.updateTrustBar();
+    this.feedbackText.setColor(opt.trust >= 0 ? "#1D9E75" : "#E24B4A")
+      .setText(opt.trust >= 0 ? "Publik menganggap jawabanmu netral dan berdasar data." : "Publik mulai meragukan objektivitasmu.");
+    this.time.delayedCall(1300, () => {
+      this.idx++;
+      if (this.idx >= CONTENT.level5.questions.length) {
+        this.scene.start("Result");
+      } else {
+        this.showQuestion();
+      }
+    });
+  }
+}
+
+/* =========================================================
+   SCENE: RESULT — Indeks Kredibilitas
+   ========================================================= */
+class ResultScene extends Phaser.Scene {
+  constructor() { super("Result"); }
+  create() {
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.add.text(400, 40, "Indeks Kredibilitas Jurnalis", { fontFamily: "sans-serif", fontSize: "24px", color: "#F2A623" }).setOrigin(0.5);
+
+    const akurasi = this.computeAkurasi();
+    const ketenangan = this.computeKetenangan();
+    const netralitas = this.computeNetralitas();
+    const total = Math.round(akurasi * 0.4 + ketenangan * 0.3 + netralitas * 0.3);
+
+    this.drawMetric(220, 130, "Akurasi", akurasi, 0x378ADD);
+    this.drawMetric(400, 130, "Ketenangan", ketenangan, 0xF2A623);
+    this.drawMetric(580, 130, "Netralitas", netralitas, 0x1D9E75);
+
+    this.add.text(400, 230, `Total Indeks Kredibilitas: ${total}%`, { fontFamily: "sans-serif", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+
+    const badges = this.computeBadges(akurasi, ketenangan, netralitas);
+    this.add.text(400, 270, "Lencana diperoleh:", { fontFamily: "sans-serif", fontSize: "14px", color: "#888780" }).setOrigin(0.5);
+    this.add.text(400, 300, badges.length ? badges.join("   ") : "(belum ada lencana, coba lagi!)", {
+      fontFamily: "sans-serif", fontSize: "14px", color: "#F2A623", align: "center", wordWrap: { width: 600 }
+    }).setOrigin(0.5);
+
+    makeButton(this, 400, 400, 260, 54, "Main Lagi", () => this.scene.start("Menu"));
+  }
+  computeAkurasi() {
+    const l1 = GameState.level1.total ? GameState.level1.correct / GameState.level1.total : 0;
+    const l2 = GameState.level2.total ? GameState.level2.correct / GameState.level2.total : 0;
+    const l3 = GameState.level3.total ? GameState.level3.correct / GameState.level3.total : 0;
+    return Math.round(((l1 + l2 + l3) / 3) * 100);
+  }
+  computeKetenangan() {
+    const rageScore = 100 - GameState.level2.rageMax;
+    const missPenalty = Math.max(0, 100 - GameState.level3.misses * 25);
+    return Math.round((rageScore + missPenalty) / 2);
+  }
+  computeNetralitas() {
+    const conclusionScore = (GameState.level4.neutralityScore / GameState.level4.neutralityMax) * 100;
+    const trustScore = GameState.level5.trust;
+    return Math.round((conclusionScore + trustScore) / 2);
+  }
+  computeBadges(akurasi, ketenangan, netralitas) {
+    const badges = [];
+    const l1full = GameState.level1.total > 0 && GameState.level1.correct === GameState.level1.total;
+    if (l1full) badges.push("🕵️ Detektif Fakta");
+    if (GameState.level2.rageMax === 0 && GameState.level3.misses === 0) badges.push("🧊 Kepala Dingin");
+    if (GameState.level3.total > 0 && GameState.level3.misses === 0) badges.push("🔨 Penghancur Sesat Pikir");
+    if (netralitas >= 95) badges.push("🕊️ Diplomat Muda");
+    return badges;
+  }
+  drawMetric(x, y, label, value, color) {
+    const g = this.add.graphics();
+    g.fillStyle(COLORS.card, 1);
+    g.fillRoundedRect(x - 80, y - 50, 160, 100, 14);
+    this.add.text(x, y - 25, label, { fontFamily: "sans-serif", fontSize: "13px", color: "#888780" }).setOrigin(0.5);
+    this.add.text(x, y + 5, value + "%", { fontFamily: "sans-serif", fontSize: "26px", color: "#ffffff" }).setOrigin(0.5);
+    progressBar(this, x - 60, y + 30, 120, 8, value / 100, color);
+  }
+}
+
+/* =========================================================
+   KONFIGURASI GAME
+   ========================================================= */
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 500,
+  parent: "game-container",
+  backgroundColor: "#1b1f2a",
+  scene: [MenuScene, Level1Scene, Level2Scene, Level3Scene, Level4Scene, Level5Scene, ResultScene]
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>
